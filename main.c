@@ -32,16 +32,17 @@ int mm[MAX_MM_PAGE][NUM_ADDRESSES];
 
 // Page structure contains information of a Page in main memory
 struct Page {
-    int mmID;
-    int mmPageID;
-}
+    int mmID;       // ID in main memory
+    int mmPageID;   // page ID associated to main memory
+    int position;   // position in the data structures
+};
 
 // a queue data structure of Pages for FIFO algorithm
 // since with queue it's easy to handle FIFO items
 struct Queue {
     int size;
     struct Page queueItems[MAX_MM_PAGE];
-};
+} queue;
 
 // define suitable data structure to handle LRU properties 
 // data is Page
@@ -67,6 +68,21 @@ void initMemory() {
         }
     }
 
+}
+
+void initQueue() {
+    queue.size = 0;
+}
+
+void printQueue() {     // creating for testing
+    if (queue.size > 0) {
+        for (int i = 0; i < queue.size; i++) {
+            printf("Items at %d: pageID [%d]\n", i, queue.queueItems[i].mmPageID);
+        }
+    }
+    else {
+        printf("Queue is empty!\n");
+    }
 }
 
 void distributeInput(char* input, int* argc, char** argv) { //distributes input into argc & argv
@@ -99,6 +115,11 @@ void printMM(int pageID){   // showmain command
     }
 }
 
+int convertVAtoPageID(int va) {
+    // formula: baseID * NUM_ADDRESSES + offset = VA
+    // -> baseID = (VA - off)
+}
+
 
 void eval(char **argv, int argc, enum ALGORITHM algo){
     
@@ -112,17 +133,25 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
     else if (strcmp(argv[0],"showptable") == 0){
         showpTable();
     }
-    /*else if(strcmp(argv[0],"printVM") == 0){ //helper command
-        printVM();
+    else if(strcmp(argv[0],"showqueue") == 0){ //helper command
+        printQueue();
     }
-    else if(strcmp(argv[0],"printMM") == 0){ //helper command
+    /*else if(strcmp(argv[0],"printMM") == 0){ //helper command
         printMM();
     }*/
     else if (strcmp(argv[0],"quit") == 0){
         exit(0);
     }
 
-    else {  // read and write commands
+    else {  // read and write commands which would change the internal of pageTable and memory systems 
+        int VA = atoi(argv[1]);     // getting the virtual address
+        int pageIndex = convertVAtoIndex(VA);          // need to find the pageIndex of this VA
+        int pageID = convertVAtoPageID(VA);
+
+
+        if (isAPageFault(pageID)) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
+            // do something
+        }
 
 
     }
@@ -133,21 +162,22 @@ int main(int argc, char* argv[]){
     int u_argc = 0;             //user entered: number of arguments 
     char* u_argv[MAX_LINE];     //user entered: list of arguments. First arg is command.
     enum ALGORITHM algo = FIFO; // default page replacement argorithm
-    char pageRepAlgo[MAX_LINE];
+    //char pageRepAlgo[MAX_LINE];
 
     // check for command-line argument if LRU, assign LRU for algorithm else use default
-    if (argc == 1) {
-        strcpy(pageRepAlgo, argv[1]);
-        if (strcmp(pageRepAlgo, "LRU") == 0) {
+    /*if (argc == 1) {
+        if (strcmp(argv[1], "LRU") == 0) {
             algo = LRU;
         }
-    }
-    
-
+    }*/
 
     // Initialize the memory and page table 
     initMemory();
-    initPageTable();        
+    initPageTable();     
+    //printf("done init\n");
+
+    // Initiazlie queue for FIFO algorithm
+    initQueue();   
 
     //take user input
     while(1) //loop until quit is entered
