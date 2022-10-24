@@ -8,13 +8,13 @@
 #define MAX_VM_PAGE 16
 #define NUM_ADDRESSES 8
 
-typedef ALGORITHM {
+enum ALGORITHM {
     FIFO,
     LRU
 };
 
-//define page 
-struct page_Table{
+// define page table: same format as the provided example
+struct page_Table{  
     int pageID;     // 0 - 3 (4 pages) for main memory and 0 - 15 (16 pages) for disk/virtual memory
     int validBit;   // 1: page is in main memory, 0: page is on virtual memory
     int dirtyBit;   // 1: page has been written to while in main memory, else 0
@@ -24,14 +24,27 @@ struct page_Table{
 //int vm[128] = { [0 ... 127 ] = -1} ;    //virtual memory, 128 addresses init to -1, also known as "disk"
 //int mm[32] = {[0 ... 31] = -1};         //main memory, 32 addresses init to -1
 
-// using 2-d for both the disk and main memory [page ID][address ID]
+// using 2-d for both the disk and main memory [pageNum][address ID]
 // memory layouts would be: disk 16 x 8 and main memory 4 x 8 
-// easier than 1-d when finding page ID
-int vm[MAX_VM_PAGE][MAX_ADDRESSES];
-int mm[MAX_MM_PAGE][MAX_ADDRESSES;]
+// easier than 1-d when working with page ID. Using offset and base address to access actuall address ID
+int vm[MAX_VM_PAGE][NUM_ADDRESSES];
+int mm[MAX_MM_PAGE][NUM_ADDRESSES];
 
+// Page structure contains information of a Page in main memory
+struct Page {
+    int mmID;
+    int mmPageID;
+}
 
-//Note: Make sure to refer back to 3.1 to determine offsets for pageNum and accessing addresses
+// a queue data structure of Pages for FIFO algorithm
+// since with queue it's easy to handle FIFO items
+struct Queue {
+    int size;
+    struct Page queueItems[MAX_MM_PAGE];
+};
+
+// define suitable data structure to handle LRU properties 
+// data is Page
 
 void initPageTable() {
     for(int i = 0; i < MAX_VM_PAGE; i ++){
@@ -44,12 +57,12 @@ void initPageTable() {
 
 void initMemory() {
     for (int i = 0; i < MAX_VM_PAGE; i++) {
-        for (int j = 0; j < MAX_ADDRESSES; j++) {
+        for (int j = 0; j < NUM_ADDRESSES; j++) {
             vm[i][j] = -1;
         }
     }
     for (int i = 0; i < MAX_MM_PAGE; i++) {
-        for (int j = 0; j < MAX_ADDRESSES; j++) {
+        for (int j = 0; j < NUM_ADDRESSES; j++) {
             mm[i][j] = -1;
         }
     }
@@ -66,7 +79,7 @@ void distributeInput(char* input, int* argc, char** argv) { //distributes input 
     }
 }
 void showpTable(){ 
-    for(int i = 0; i < MAX_VIRTUAL_PAGE; i++){
+    for(int i = 0; i < MAX_VM_PAGE; i++){
         printf("%d:%d:%d:%d\n",pageTable[i].pageID,pageTable[i].validBit,pageTable[i].dirtyBit,pageTable[i].pageNum);
     }
 }
@@ -78,28 +91,25 @@ void showpTable(){
 }*/
 
 void printMM(int pageID){   // showmain command
-    for(int i = 0; i < MAX_ADRESSES; i ++){
-        // print contents in pageID with addr = offset of MAX_ADRESSES + base_ID
-        address = (pageID * MAX_ADRESSES) + i;
+    int address = 0;
+    for(int i = 0; i < NUM_ADDRESSES; i ++){
+        // print contents in pageID with addr = offset + base_ID * NUM_ADDRESSES 
+        address = (pageID * NUM_ADDRESSES) + i;
         printf("%d:%d\n", address, mm[pageID][i]);
     }
 }
 
 
-void eval(char **argv, int argc){
-    if(strcmp(argv[0],"read") == 0){
-        //TO-DO
-    }
-    else if(strcmp(argv[0],"write") == 0 ){
-        //TO-DO
-    }
-    else if(strcmp(argv[0],"showmain") == 0){
+void eval(char **argv, int argc, enum ALGORITHM algo){
+    
+    // print and quit commands
+    if (strcmp(argv[0],"showmain") == 0){
         // print main memory with page ID
         int ID = atoi(argv[1]);
         printMM(ID);
         
     }
-    else if(strcmp(argv[0],"showptable") == 0){
+    else if (strcmp(argv[0],"showptable") == 0){
         showpTable();
     }
     /*else if(strcmp(argv[0],"printVM") == 0){ //helper command
@@ -108,19 +118,31 @@ void eval(char **argv, int argc){
     else if(strcmp(argv[0],"printMM") == 0){ //helper command
         printMM();
     }*/
-    else if(strcmp(argv[0],"quit") == 0){
+    else if (strcmp(argv[0],"quit") == 0){
         exit(0);
     }
+
+    else {  // read and write commands
+
+
+    }
 }
-int main(int argc, char * argv[]){
+int main(int argc, char* argv[]){
 
-    char input[MAX_LINE];   //user input
-    int argc;               //user entered: number of arguments 
-    char* argv[MAX_LINE];   //user entered: list of arguments. First arg is command.
-    enum ALGORITHM algo = FIFO // default argorithm
+    char input[MAX_LINE];       //user input
+    int u_argc = 0;             //user entered: number of arguments 
+    char* u_argv[MAX_LINE];     //user entered: list of arguments. First arg is command.
+    enum ALGORITHM algo = FIFO; // default page replacement argorithm
+    char pageRepAlgo[MAX_LINE];
 
-
-    //strcpy(rpAlg, argv[1]);  //pg replacement alg
+    // check for command-line argument if LRU, assign LRU for algorithm else use default
+    if (argc == 1) {
+        strcpy(pageRepAlgo, argv[1]);
+        if (strcmp(pageRepAlgo, "LRU") == 0) {
+            algo = LRU;
+        }
+    }
+    
 
 
     // Initialize the memory and page table 
@@ -132,14 +154,14 @@ int main(int argc, char * argv[]){
     {
         fflush(stdin);
         fflush(stdout);
-        argc = 0;
+        u_argc = 0;
 
         printf("> ");
         fgets(input,MAX_LINE,stdin);
-        printf("finish\n");
+        //printf("finish\n");
 
-        distributeInput(input, &argc, argv);
-        eval(argv, argc);
+        distributeInput(input, &u_argc, u_argv);
+        eval(u_argv, u_argc, algo);
         
     }
 
