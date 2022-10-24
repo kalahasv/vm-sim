@@ -115,9 +115,18 @@ void printMM(int pageID){   // showmain command
     }
 }
 
-int convertVAtoPageID(int va) {
-    // formula: baseID * NUM_ADDRESSES + offset = VA
-    // -> baseID = (VA - off)
+int convertVAtoIndex(int va) {
+    return va & 7;
+}
+
+int convertVAtoPageID(int offset, int va) {
+    // formula: pageID * NUM_ADDRESSES + offset = VA
+    // pageID = (VA - off) / NUM_ADDRESSES
+    return (va - offset) / NUM_ADDRESSES;
+}
+
+int isAPageFault() {
+    return 1;
 }
 
 
@@ -146,10 +155,12 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
     else {  // read and write commands which would change the internal of pageTable and memory systems 
         int VA = atoi(argv[1]);     // getting the virtual address
         int pageIndex = convertVAtoIndex(VA);          // need to find the pageIndex of this VA
-        int pageID = convertVAtoPageID(VA);
+        int pageID = convertVAtoPageID(pageIndex, VA);
+
+        printf("page ID: %d at index %d\n", pageID, pageIndex);
 
 
-        if (isAPageFault(pageID)) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
+        if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
             // do something
         }
 
