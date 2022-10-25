@@ -35,6 +35,7 @@ struct Page {
     int mmID;       // ID in main memory
     int mmPageID;   // page ID associated to main memory
     int position;   // position in the data structures
+    int timesAccessed; //times accessed while in queue, reset to zero after page exits queue
 };
 
 // a queue data structure of Pages for FIFO algorithm
@@ -125,8 +126,25 @@ int convertVAtoPageID(int offset, int va) {
     return (va - offset) / NUM_ADDRESSES;
 }
 
-int isAPageFault() {
-    return 1;
+int isAPageFault(int pageID) { //puts stuff into queue
+
+    for(int i = 0; i < queue.size; i++){
+        if(queue.queueItems[i].mmID == 0){ //item isn't in the queue but there's empty space
+            return -1;//put this page into the queue 
+        }
+        if(pageID == queue.queueItems[i].mmID){
+            return 0; //not a hit since value already exists, update accessed value of item 
+        }
+    }
+    return 1; //hit. value isn't in the queue, and there's no space for it
+
+}
+
+int LRUFindVictimPage(int pageRef[],int page_ref_num){
+    //using queue as the frames -> going to assume queue is full here
+    //pageRef is string of pages for reference - can replace with actual reference string later, or not 
+
+
 }
 
 
