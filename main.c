@@ -163,7 +163,7 @@ int LRUFindVictimPage(){  //assume queue is full here -> returns queue location 
 
 }
 
-void RemoveVictimPage(int pageID){ //remove the specified victim page from queue. updates pageTable
+void RemoveVictimPage(int pagePosition){ //remove the specified victim page from queue. updates pageTable
 
     //do something
 }
