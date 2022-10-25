@@ -126,25 +126,50 @@ int convertVAtoPageID(int offset, int va) {
     return (va - offset) / NUM_ADDRESSES;
 }
 
-int isAPageFault(int pageID) { //puts stuff into queue
+int isAPageFault(int pageID) { //checks if incoming page is a fault
 
     for(int i = 0; i < queue.size; i++){
-        if(queue.queueItems[i].mmID == 0){ //item isn't in the queue but there's empty space
-            return -1;//put this page into the queue 
-        }
+        
         if(pageID == queue.queueItems[i].mmID){
+            queue.queueItems[i].timesAccessed++;
             return 0; //not a hit since value already exists, update accessed value of item 
         }
+        else if(queue.queueItems[i].mmID == 0){ //item isn't in the queue but there's empty space in queue
+            return -1;//put this page into the queue - note: this is technically a page fault 
+        }
     }
-    return 1; //hit. value isn't in the queue, and there's no space for it
+    return 1; //page fault. value isn't in the queue, and there's no space for it.
 
 }
 
-int LRUFindVictimPage(int pageRef[],int page_ref_num){
-    //using queue as the frames -> going to assume queue is full here
+int LRUFindVictimPage(){  //assume queue is full here -> returns queue location of victim page   
     //pageRef is string of pages for reference - can replace with actual reference string later, or not 
+    //take all of the least accessed values and find out which is the least recently used one. 
+    int minimum = queue.queueItems[0].timesAccessed; //minimum times accessed starts at first value
+    for(int i = 0; i < queue.size; i++){
+        if ( queue.queueItems[i].timesAccessed < minimum ) 
+        {
+           minimum = queue.queueItems[i].timesAccessed;
+        }
+    }
+
+    //find the least recent page that has been accessed minimum amount of times 
+    for(int i = 0; i < queue.size; i++){
+        if(queue.queueItems[i].timesAccessed == minimum){
+            return i;
+        }
+    }
 
 
+}
+
+void RemoveVictimPage(int pageID){ //remove the specified victim page from queue. updates pageTable
+
+    //do something
+}
+
+void addtoQueue(int VA,int pageIndex,int pageID) { //adds new page to queue with a timeAccessed val of 1, updates pageTable
+    //do something
 }
 
 
@@ -174,12 +199,15 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
         int VA = atoi(argv[1]);     // getting the virtual address
         int pageIndex = convertVAtoIndex(VA);          // need to find the pageIndex of this VA
         int pageID = convertVAtoPageID(pageIndex, VA);
+        int victimPagePosition = -1; //default val of -1 for testing sake -> victim page's position in the queue
 
         printf("page ID: %d at index %d\n", pageID, pageIndex);
 
 
         if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
-            // do something
+            //choose victim page based on specified algo 
+
+            RemoveVictimPage(victimPagePosition);
         }
 
 
