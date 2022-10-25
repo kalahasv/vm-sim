@@ -35,7 +35,7 @@ struct Page {
     int mmID;       // ID in main memory
     int mmPageID;   // page ID associated to main memory
     int position;   // position in the data structures
-    int timesAccessed; //times accessed while in queue, reset to zero after page exits queue
+    int timesAccessed; // times accessed while in queue, reset to zero after page exits queue
 };
 
 // a queue data structure of Pages for FIFO algorithm
@@ -130,11 +130,11 @@ int isAPageFault(int pageID) { //checks if incoming page is a fault
 
     for(int i = 0; i < queue.size; i++){
         
-        if(pageID == queue.queueItems[i].mmID){
+        if (pageID == queue.queueItems[i].mmPageID){     // if the pageID has been loaded to main (exists in queue)
             queue.queueItems[i].timesAccessed++;
             return 0; //not a hit since value already exists, update accessed value of item 
         }
-        else if(queue.queueItems[i].mmID == 0){ //item isn't in the queue but there's empty space in queue
+        else if (queue.queueItems[i].mmID == 0){ //item isn't in the queue but there's empty space in queue ????
             return -1;//put this page into the queue - note: this is technically a page fault 
         }
     }
@@ -197,18 +197,49 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
 
     else {  // read and write commands which would change the internal of pageTable and memory systems 
         int VA = atoi(argv[1]);     // getting the virtual address
-        int pageIndex = convertVAtoIndex(VA);          // need to find the pageIndex of this VA
-        int pageID = convertVAtoPageID(pageIndex, VA);
-        int victimPagePosition = -1; //default val of -1 for testing sake -> victim page's position in the queue
+        int pageIndex = convertVAtoIndex(VA);           // find the pageIndex of this VA. va & 7 (might not need to call another function)
+        int pageID = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
+        int victimPagePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
 
-        printf("page ID: %d at index %d\n", pageID, pageIndex);
+        //printf("page ID: %d at index %d\n", pageID, pageIndex);
+
+        if (algo == FIFO) {
+            if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
+                print("A Page Fault Has Occurred!\n");
+
+                if (queue.size == MAX_MM_PAGE) {    // All pages in main are in queue -> need to choose a victim page for eviction
+                    // Below is the job of removing victim page from main memory 
+                    
+                    
+                    // copy main page to disk page. this is the eviction we would need to do 
+
+                    // set the pageID in pageTable validBit = 0
+                    // set the pageID in pageTable dirtyBit = 0
+                    // set the pageID in pageTable pageNum = pageID
+
+                    // pop the first element in queue
+                }
+
+                // copy disk page to main memory
+                // find available lowest mmPageID !! 
+                // doing actual copy
+
+                // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
+                // push this page to Queue
+                // set the pageNum on the pageTable this mmPageID 
+
+            }
+        }
 
 
-        if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
+        else { // algo == LRU
+            if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
             //choose victim page based on specified algo 
 
             RemoveVictimPage(victimPagePosition);
+            }
         }
+
 
 
     }
@@ -231,7 +262,6 @@ int main(int argc, char* argv[]){
     // Initialize the memory and page table 
     initMemory();
     initPageTable();     
-    //printf("done init\n");
 
     // Initiazlie queue for FIFO algorithm
     initQueue();   
