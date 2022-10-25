@@ -176,11 +176,11 @@ int main(int argc, char* argv[]){
     //char pageRepAlgo[MAX_LINE];
 
     // check for command-line argument if LRU, assign LRU for algorithm else use default
-    /*if (argc == 1) {
+    if (argc == 2) {
         if (strcmp(argv[1], "LRU") == 0) {
             algo = LRU;
         }
-    }*/
+    }
 
     // Initialize the memory and page table 
     initMemory();
