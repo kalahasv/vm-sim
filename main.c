@@ -134,15 +134,12 @@ int isAPageFault(int pageID) { //checks if incoming page is a fault
             queue.queueItems[i].timesAccessed++;
             return 0; //not a hit since value already exists, update accessed value of item 
         }
-        else if (queue.queueItems[i].mmID == 0){ //item isn't in the queue but there's empty space in queue ????
-            return -1;//put this page into the queue - note: this is technically a page fault 
-        }
     }
     return 1; //page fault. value isn't in the queue, and there's no space for it.
 
 }
 
-int LRUFindVictimPage(){  //assume queue is full here -> returns queue location of victim page   
+int LRUFindVictimPage(){  //assume queue is full here -> returns index of item in queue to be removed since it needs to be removed by
     //pageRef is string of pages for reference - can replace with actual reference string later, or not 
     //take all of the least accessed values and find out which is the least recently used one. 
     int minimum = queue.queueItems[0].timesAccessed; //minimum times accessed starts at first value
@@ -199,46 +196,50 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
         int VA = atoi(argv[1]);     // getting the virtual address
         int pageIndex = convertVAtoIndex(VA);           // find the pageIndex of this VA. va & 7 (might not need to call another function)
         int pageID = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
-        int victimPagePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
+        int victimPageQueuePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
 
         //printf("page ID: %d at index %d\n", pageID, pageIndex);
 
-        if (algo == FIFO) {
-            if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
-                print("A Page Fault Has Occurred!\n");
-
-                if (queue.size == MAX_MM_PAGE) {    // All pages in main are in queue -> need to choose a victim page for eviction
+        
+        if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
+            print("A Page Fault Has Occurred!\n");
+            if (queue.size == MAX_MM_PAGE) {    // All pages in main are in queue -> need to choose a victim page for eviction
                     // Below is the job of removing victim page from main memory 
-                    
+                    if(algo == FIFO){
+                        victimPageQueuePosition = 0; //since FIFO is always the first element 
+                    }
+                    else{
+                        victimPageQueuePosition = LRUFindVictimPage(); //find by least recent accessed page 
+                    }
                     
                     // copy main page to disk page. this is the eviction we would need to do 
+                   
+                    
+                    pageTable[pageIndex].validBit = 0; // set the pageID in pageTable validBit = 0
+                    pageTable[pageIndex].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
+                    pageTable[pageIndex].pageNum = pageID; // set the pageID in pageTable pageNum = pageID
+                    
+                    if(victimPageQueuePosition == 0){ 
+                        PopQueue(); //pop the first element; resets page times accessed to 0
+                    }
+                    else{
+                        PopByPosition(victimPageQueuePosition); // pop by the position; resets page times access to 0
+                    }
+    
+            }
 
-                    // set the pageID in pageTable validBit = 0
-                    // set the pageID in pageTable dirtyBit = 0
-                    // set the pageID in pageTable pageNum = pageID
-
-                    // pop the first element in queue
-                }
-
-                // copy disk page to main memory
+                // copy disk page to main memory0`
                 // find available lowest mmPageID !! 
                 // doing actual copy
 
                 // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
-                // push this page to Queue
+                // push this page to Queue; times accessed should equal 1 here since it got added to the queue 
                 // set the pageNum on the pageTable this mmPageID 
 
-            }
+            
+        
         }
 
-
-        else { // algo == LRU
-            if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
-            //choose victim page based on specified algo 
-
-            RemoveVictimPage(victimPagePosition);
-            }
-        }
 
 
 
