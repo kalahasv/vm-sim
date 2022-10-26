@@ -215,9 +215,9 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                     // copy main page to disk page. this is the eviction we would need to do 
                    
                     
-                    pageTable[pageIndex].validBit = 0; // set the pageID in pageTable validBit = 0
-                    pageTable[pageIndex].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
-                    pageTable[pageIndex].pageNum = pageID; // set the pageID in pageTable pageNum = pageID
+                    pageTable[pageID].validBit = 0; // set the pageID in pageTable validBit = 0
+                    pageTable[pageID].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
+                    pageTable[pageID].pageNum = pageID; // set the pageID in pageTable pageNum = pageID
                     
                     if(victimPageQueuePosition == 0){ 
                         PopQueue(); //pop the first element; resets page times accessed to 0
