@@ -169,6 +169,12 @@ void addtoQueue(int VA,int pageIndex,int pageID) { //adds new page to queue with
     //do something
 }
 
+void popByPosition(int position){ //pops element at specified position, then shifts everything to the right left
+      for (int i = position; i < queue.size -1; i++)  
+        {  
+            queue.queueItems[i] = queue.queueItems[i+1]; // assign arr[i+1] to arr[i]  
+        }  
+}
 
 void eval(char **argv, int argc, enum ALGORITHM algo){
     
@@ -195,13 +201,13 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
     else {  // read and write commands which would change the internal of pageTable and memory systems 
         int VA = atoi(argv[1]);     // getting the virtual address
         int pageIndex = convertVAtoIndex(VA);           // find the pageIndex of this VA. va & 7 (might not need to call another function)
-        int pageID = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
+        int pageNum = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
         int victimPageQueuePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
 
         //printf("page ID: %d at index %d\n", pageID, pageIndex);
 
         
-        if (isAPageFault(pageID) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
+        if (isAPageFault(pageNum) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
             print("A Page Fault Has Occurred!\n");
             if (queue.size == MAX_MM_PAGE) {    // All pages in main are in queue -> need to choose a victim page for eviction
                     // Below is the job of removing victim page from main memory 
@@ -214,17 +220,13 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                     
                     // copy main page to disk page. this is the eviction we would need to do 
                    
+                    pageTable[pageNum].validBit = 0; // set the pageID in pageTable validBit = 0
+                    pageTable[pageNum].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
+                    pageTable[pageNum].pageNum = pageNum; // set the pageID in pageTable pageNum = pageID
                     
-                    pageTable[pageID].validBit = 0; // set the pageID in pageTable validBit = 0
-                    pageTable[pageID].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
-                    pageTable[pageID].pageNum = pageID; // set the pageID in pageTable pageNum = pageID
                     
-                    if(victimPageQueuePosition == 0){ 
-                        PopQueue(); //pop the first element; resets page times accessed to 0
-                    }
-                    else{
-                        PopByPosition(victimPageQueuePosition); // pop by the position; resets page times access to 0
-                    }
+                    popByPosition(victimPageQueuePosition); // pop by the position; resets page times access to 0
+                    
     
             }
 
