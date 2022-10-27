@@ -168,9 +168,11 @@ void RemoveVictimPage(int pagePosition){ //remove the specified victim page from
 void addtoQueue(int mmID,int mmPageID,int pageNum) { //adds new page to queue with a timeAccessed val of 1, updates pageTable
 
     struct Page newPage = { mmID, mmPageID,pageNum,1 }; //constructs a new page to be added to the queue
-    if(queue.size <= MAX_MM_PAGE)
+    if(queue.size+1 <= MAX_MM_PAGE) //check if you're allowed to addor not
     {
-        queue.queueItems[queue.size+1] = newPage;
+        queue.size++; //increase ssize to accomodate new element
+        queue.queueItems[queue.size] = newPage;
+        
     }
     else
     {
