@@ -42,7 +42,7 @@ struct Page {
 // since with queue it's easy to handle FIFO items
 struct Queue {
     int size;
-    struct Page queueItems[MAX_MM_PAGE];
+    struct Page queueItems[MAX_MM_PAGE]; //max queue size is 4
 } queue;
 
 // define suitable data structure to handle LRU properties 
@@ -165,8 +165,17 @@ void RemoveVictimPage(int pagePosition){ //remove the specified victim page from
     //do something
 }
 
-void addtoQueue(int VA,int pageIndex,int pageID) { //adds new page to queue with a timeAccessed val of 1, updates pageTable
-    //do something
+void addtoQueue(int mmID,int mmPageID,int pageNum) { //adds new page to queue with a timeAccessed val of 1, updates pageTable
+
+    struct Page newPage = { mmID, mmPageID,pageNum,1 }; //constructs a new page to be added to the queue
+    if(queue.size <= MAX_MM_PAGE)
+    {
+        queue.queueItems[queue.size+1] = newPage;
+    }
+    else
+    {
+        printf("Queue add error.Attempting to insert element into full queue.\n");
+    }
 }
 
 void popByPosition(int position){ //pops element at specified position, then shifts everything to the right left
@@ -176,6 +185,8 @@ void popByPosition(int position){ //pops element at specified position, then shi
         }  
         queue.size --; //decrease the queue size
 }
+
+
 
 void eval(char **argv, int argc, enum ALGORITHM algo){
     
@@ -237,7 +248,7 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                 // find available lowest mmPageID !! 
                 // doing actual copy
 
-                // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
+                pageTable[pageNum].validBit = 1; // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
                 // push this page to Queue; times accessed should equal 1 here since it got added to the queue 
                 // set the pageNum on the pageTable this mmPageID 
 
