@@ -174,6 +174,7 @@ void popByPosition(int position){ //pops element at specified position, then shi
         {  
             queue.queueItems[i] = queue.queueItems[i+1]; // assign arr[i+1] to arr[i]  
         }  
+        queue.size --; //decrease the queue size
 }
 
 void eval(char **argv, int argc, enum ALGORITHM algo){

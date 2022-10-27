@@ -51,6 +51,7 @@ int main(){
     for (int i = 0; i < 5; i++ )  
     {  
         queue.queueItems[i].mmID = i;
+        queue.queueItems[i].timesAccessed = 1;
     }  
     printf("Before\n");
     for (int i = 0; i< 5 ; i++)  
@@ -59,10 +60,16 @@ int main(){
             printf (" %d \n", queue.queueItems[i].mmID);  
     } 
     
-    queue.queueItems[2].timesAccessed++;
+    queue.queueItems[4].timesAccessed--;
 
     int victim = LRUFindVictimPage();
     printf("Victim Page found: %d\n", victim);
+
+     for (int i = 0; i< 5 ; i++)  
+    {  
+            printf (" arr[%d] = ", i);  
+            printf (" %d \n", queue.queueItems[i].timesAccessed);  
+    } 
 
     
 
