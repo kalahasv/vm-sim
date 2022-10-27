@@ -12,6 +12,13 @@ enum ALGORITHM {
     FIFO,
     LRU
 };
+enum POTENTIALS {
+    ZERO,
+    ONE,
+    TWO,
+    THREE,
+    USED
+};
 
 // define page table: same format as the provided example
 struct page_Table{  
@@ -188,6 +195,30 @@ void popByPosition(int position){ //pops element at specified position, then shi
         queue.size --; //decrease the queue size
 }
 
+int findLowestMMPageID(){
+
+    enum POTENTIALS valset[4] = {ZERO,ONE,TWO,THREE};
+    int currentPage;
+    for(int i = 0; i < 16;i++){
+        //can either be 0,1,2,3 
+        //look through the page table and check if the validBit is 1 meaning the page is in main memory
+        if(pageTable[i].validBit == 1){
+            currentPage = pageTable[i].pageNum; //figure out what page it's on
+            valset[currentPage] = USED; //change status to used 
+
+        }
+
+    }
+
+    //check for first non-used status and return that index
+
+    for(int i = 0; i < 4; i ++){
+        if(valset[i] != USED){
+            return i;
+        }
+    }
+
+}
 
 
 void eval(char **argv, int argc, enum ALGORITHM algo){
@@ -248,9 +279,11 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
             
                 // copy disk page to main memory0`
                 // find available lowest mmPageID !! 
+
+
                 // doing actual copy
 
-                pageTable[pageNum].validBit = 1; // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
+                // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
                 // push this page to Queue; times accessed should equal 1 here since it got added to the queue 
                 // set the pageNum on the pageTable this mmPageID 
 
