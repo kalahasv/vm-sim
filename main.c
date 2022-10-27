@@ -217,6 +217,7 @@ int findLowestMMPageID(){
             return i;
         }
     }
+    return -1; //error all pages are used already
 
 }
 
