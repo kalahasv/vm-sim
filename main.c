@@ -170,9 +170,9 @@ void addtoQueue(int mmID,int mmPageID,int pageNum) { //adds new page to queue wi
     struct Page newPage = { mmID, mmPageID,pageNum,1 }; //constructs a new page to be added to the queue
     if(queue.size+1 <= MAX_MM_PAGE) //check if you're allowed to addor not
     {
-        queue.size++; //increase ssize to accomodate new element
+         //increase ssize to accomodate new element
         queue.queueItems[queue.size] = newPage;
-        
+        queue.size++;
     }
     else
     {

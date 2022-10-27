@@ -2,6 +2,8 @@
 #include<string.h>
 #include<stdio.h>
 
+#define MAX_MM_PAGE 4
+
 struct Page {
     int mmID;       // ID in main memory
     int mmPageID;   // page ID associated to main memory
@@ -44,32 +46,42 @@ int LRUFindVictimPage(){  //assume queue is full here -> returns index of item i
 
 }
 
+void addtoQueue(int mmID,int mmPageID,int pageNum) { //adds new page to queue with a timeAccessed val of 1, updates pageTable
+
+    struct Page newPage = { mmID, mmPageID,pageNum,1 }; //constructs a new page to be added to the queue
+    if(queue.size+1 <= MAX_MM_PAGE) //check if you're allowed to addor not
+    {
+       
+        queue.queueItems[queue.size] = newPage;
+        queue.size++; //increase ssize to accomodate new element
+        
+    }
+    else
+    {
+        printf("Queue add error.Attempting to insert element into full queue.\n");
+    }
+}
+
 int main(){
     //init queue 
-    queue.size = 5;
+    queue.size = 0;
 
-    for (int i = 0; i < 5; i++ )  
+    for (int i = 0; i < 4; i++ )  
     {  
-        queue.queueItems[i].mmID = i;
-        queue.queueItems[i].timesAccessed = 1;
+        addtoQueue(i,i+1,0);
     }  
-    printf("Before\n");
-    for (int i = 0; i< 5 ; i++)  
+   // printf("Before\n");
+    for (int i = 0; i< 4 ; i++)  
     {  
             printf (" arr[%d] = ", i);  
             printf (" %d \n", queue.queueItems[i].mmID);  
     } 
     
-    queue.queueItems[4].timesAccessed--;
+   
 
-    int victim = LRUFindVictimPage();
-    printf("Victim Page found: %d\n", victim);
+    
 
-     for (int i = 0; i< 5 ; i++)  
-    {  
-            printf (" arr[%d] = ", i);  
-            printf (" %d \n", queue.queueItems[i].timesAccessed);  
-    } 
+    
 
     
 
