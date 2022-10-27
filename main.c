@@ -157,7 +157,7 @@ int LRUFindVictimPage(){  //assume queue is full here -> returns index of item i
         }
     }
 
-
+    return -1; //error 
 }
 
 void RemoveVictimPage(int pagePosition){ //remove the specified victim page from queue. updates pageTable
@@ -209,7 +209,8 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
         
         if (isAPageFault(pageNum) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
             print("A Page Fault Has Occurred!\n");
-            if (queue.size == MAX_MM_PAGE) {    // All pages in main are in queue -> need to choose a victim page for eviction
+            if (queue.size == MAX_MM_PAGE) 
+            {    // All pages in main are in queue -> need to choose a victim page for eviction
                     // Below is the job of removing victim page from main memory 
                     if(algo == FIFO){
                         victimPageQueuePosition = 0; //since FIFO is always the first element 
@@ -224,12 +225,13 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                     pageTable[pageNum].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
                     pageTable[pageNum].pageNum = pageNum; // set the pageID in pageTable pageNum = pageID
                     
-                    
                     popByPosition(victimPageQueuePosition); // pop by the position; resets page times access to 0
-                    
     
             }
+            else
+            {
 
+            
                 // copy disk page to main memory0`
                 // find available lowest mmPageID !! 
                 // doing actual copy
@@ -238,7 +240,7 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                 // push this page to Queue; times accessed should equal 1 here since it got added to the queue 
                 // set the pageNum on the pageTable this mmPageID 
 
-            
+            }
         
         }
 
