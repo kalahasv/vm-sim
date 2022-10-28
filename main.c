@@ -1,4 +1,4 @@
-//test setting up the github
+//final version
 #include <stdlib.h>
 #include<string.h>
 #include<stdio.h>
@@ -28,10 +28,7 @@ struct page_Table{
     int pageNum;    // page number of virtual page either on main memory (validBit = 1) or disk/virtual memory (validBit = 0)
 } pageTable[MAX_VM_PAGE];
 
-//int vm[128] = { [0 ... 127 ] = -1} ;    //virtual memory, 128 addresses init to -1, also known as "disk"
-//int mm[32] = {[0 ... 31] = -1};         //main memory, 32 addresses init to -1
-
-// using 2-d for both the disk and main memory [pageNum][address ID]
+// using 2-d array for both the disk and main memory [pageNum][address ID]
 // memory layouts would be: disk 16 x 8 and main memory 4 x 8 
 // easier than 1-d when working with page ID. Using offset and base address to access actuall address ID
 int vm[MAX_VM_PAGE][NUM_ADDRESSES];
@@ -41,7 +38,6 @@ int mm[MAX_MM_PAGE][NUM_ADDRESSES];
 struct Page {
     int pageID;     // pageID refers to virtual page
     int mmPageID;   // main memory's page ID
-    //int position;   // position in the data structures
     int timeSinceAccessed; // times accessed while in queue, reset to zero after page exits queue
 };
 
@@ -59,7 +55,7 @@ void initPageTable() {
     for(int i = 0; i < MAX_VM_PAGE; i ++){
         pageTable[i].pageID = i;
         pageTable[i].validBit = 0;  // All virtual pages are initially on disk so validBit = 0
-        pageTable[i].dirtyBit = 0; 
+        pageTable[i].dirtyBit = 0;  // All mm pages have initially not been written so validBit = 0
         pageTable[i].pageNum = i; 
     }
 }
@@ -108,7 +104,7 @@ void showpTable(){
     }
 }
 
-/*void printVM(){ //helper function. prints the vm table.
+/*void printVM(){ //helper function for testing. prints the vm table.
     for(int i = 0;i < 128; i ++){
         printf("%d\n",vm[i]);
     }
@@ -123,15 +119,6 @@ void printMM(int pageID){   // showmain command
     }
 }
 
-int convertVAtoIndex(int va) {
-    return va & 7;
-}
-
-int convertVAtoPageID(int offset, int va) {
-    // formula: pageID * NUM_ADDRESSES + offset = VA
-    // pageID = (VA - off) / NUM_ADDRESSES
-    return (va - offset) / NUM_ADDRESSES;
-}
 
 int isAPageFault(int pageID) { //checks if incoming page is a fault
 
@@ -168,16 +155,12 @@ int LRUFindVictimPage(){  //assume queue is full here -> returns index of item i
     return -1; //error 
 }
 
-void RemoveVictimPage(int pagePosition){ //remove the specified victim page from queue. updates pageTable
-
-    //do something
-}
 
 void pushToRear(int mmPageID, int pageNum) { //adds new page to queue with a timeAccessed val of 1, updates pageTable
     int index = queue.size;
     queue.queueItems[index].pageID = pageNum;
     queue.queueItems[index].mmPageID = mmPageID;
-    queue.queueItems[index].timeSinceAccessed = 0;
+    queue.queueItems[index].timeSinceAccessed = 0; // set back to 0 every time. meaning this pageID is newly accessed
     queue.size++;
 
 }
@@ -231,12 +214,20 @@ void updateTimes(){
     }
 }
 
-void eval(char **argv, int argc, enum ALGORITHM algo){
-    
-    int pageIndex = -1;
-    int pageNum = -1;
+void evictVictimPageByPosition(int pos) {
+    copyPageToMemory(mm[queue.queueItems[pos].mmPageID], vm[queue.queueItems[pos].pageID]);  // queue's full. copy the victim page back to disk
+    // for FIFO: First item in queue will be evicted. for LRU: Max timeSinceAccessed will be evicted.
+    // victim page is copied back to disk with page number is the same as the number virtual page
+    // clear validBit and dirtyBit since the page is no longer in main memory
+    pageTable[queue.queueItems[pos].pageID].validBit = 0;
+    pageTable[queue.queueItems[pos].pageID].dirtyBit = 0;
+    pageTable[queue.queueItems[pos].pageID].pageNum = pageTable[queue.queueItems[pos].pageID].pageID;
+    popByPosition(pos);
+}
 
-    // print and quit commands
+void eval(char **argv, int argc, enum ALGORITHM algo){
+ 
+    // prints and quit commands
     if (strcmp(argv[0],"showmain") == 0){
         // print main memory with page ID
         int ID = atoi(argv[1]);
@@ -246,114 +237,55 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
     else if (strcmp(argv[0],"showptable") == 0){
         showpTable();
     }
-    else if(strcmp(argv[0],"showqueue") == 0){ //helper command
+    else if(strcmp(argv[0],"showqueue") == 0){ // helper command
         printQueue();
     }
-    /*else if(strcmp(argv[0],"printMM") == 0){ //helper command
-        printMM();
+    /*else if(strcmp(argv[0],"printVM") == 0){ // helper command
+        printVM();
     }*/
     else if (strcmp(argv[0],"quit") == 0){
         exit(0);
     }
 
     else {  // read and write commands which would change the internal of pageTable and memory systems 
+        updateTimes(); //increase time for everything in the queue.
         int VA = atoi(argv[1]);     // getting the virtual address
-        int pageIndex = convertVAtoIndex(VA);           // find the pageIndex of this VA. va & 7 (might not need to call another function)
-        int pageNum = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
-        int victimPageQueuePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
+        int pageIndex = VA & 7; // taking off first 3 bits to get the offset of this virtual page since we have addresses from 0 - 7 each page
+        int pageNum = (VA - pageIndex) / NUM_ADDRESSES; // find pageID of this VA based on offset
+        int victimPos = -1; // default val of -1 for testing sake -> victim page's position in the queue
 
-        if (algo == FIFO) {
-            if (isAPageFault(pageNum) == 1) {
-                printf("A Page Fault Has Occured!\n");
-                if (queue.size == MAX_MM_PAGE) { // All pages in main are in queue -> need to choose a victim page for eviction
-                    copyPageToMemory(mm[queue.queueItems[0].mmPageID], vm[queue.queueItems[0].pageID]);     // queue's full. copy the victim page back to disk
-                    // for FIFO. First item in queue will be evicted
-                    // victim page is copied back to disk with page number is the same as the number virtual page
-                    // clear validBit and dirtyBit since the page is no longer in main memory
-                    pageTable[queue.queueItems[0].pageID].validBit = 0;
-                    pageTable[queue.queueItems[0].pageID].dirtyBit = 0;
-                    pageTable[queue.queueItems[0].pageID].pageNum = pageTable[queue.queueItems[0].pageID].pageID;
-                    popByPosition(0);
-
-                    // all statements above will come into this
-                    //evictVictimPagebyPosition(victimPageQueuePosition);
+        if (isAPageFault(pageNum) == 1) {
+            printf("A Page Fault Has Occured!\n");
+            if (queue.size == MAX_MM_PAGE) { // All pages in main are in queue -> need to choose a victim page for eviction
+                if (algo == FIFO) {
+                    victimPos = 0;
                 }
-
-                // else there is still available page in 
-                int availableMMPageID = findLowestMMPageID();
-                pushToRear(availableMMPageID, pageNum);
-                // copy disk page into main memory (loading page to main memory)
-                copyPageToMemory(vm[pageNum], mm[availableMMPageID]);
-                // update pageTable is we already loaded page to main memory
-                pageTable[pageNum].validBit = 1;    // already in main memory
-                pageTable[pageNum].pageNum = availableMMPageID;
-
-            }
-            // page might or might not in queue which is on main
-            // write command still needs to load page to main and write content
-            int pos = posOfPageInQueue(pageNum);
-            if (strcmp(argv[0], "write") == 0) {
-                mm[queue.queueItems[pos].mmPageID][pageIndex] = atoi(argv[2]);      // write content to main memory
-                pageTable[pageNum].dirtyBit = 1;
-            }
-            else {  // read content of a page. either -1 when page fault or the real content
-                printf("%d\n", mm[queue.queueItems[pos].mmPageID][pageIndex]);
+                else {
+                    victimPos = LRUFindVictimPage();
+                }
+                evictVictimPageByPosition(victimPos);   // evict the found victim page on queue, copy and reset bits
             }
 
+            // else there is still available page in 
+            int availableMMPageID = findLowestMMPageID();        
+            pushToRear(availableMMPageID, pageNum);
+            // copy disk page into main memory (loading page to main memory)
+            copyPageToMemory(vm[pageNum], mm[availableMMPageID]);
+            // update pageTable is we already loaded page to main memory
+            pageTable[pageNum].validBit = 1;    // already in main memory
+            pageTable[pageNum].pageNum = availableMMPageID;
         }
 
-        
-        else {  // here is for LRU Algorithm. Separating two algorithm at the beginning is easier to handle
-                // Optimization can be done later
-            updateTimes(); //increase time for everything in the queue.
-            if (isAPageFault(pageNum) == 1) {
-                printf("A Page Fault Has Occured!\n");
-                int pos;
-                if (queue.size == MAX_MM_PAGE) { // All pages in main are in queue -> need to choose a victim page for eviction
-                    //printf("Hit max size.\n");
-                    pos = LRUFindVictimPage();
-                    //printf("The page chosen for evition is: %d\n",pos);
-                    copyPageToMemory(mm[queue.queueItems[pos].mmPageID], vm[queue.queueItems[pos].pageID]);     // queue's full. copy the victim page back to disk
-                    // for LRU. \Least recently used item in queue
-                    // victim page is copied back to disk with page number is the same as the number virtual page
-                    // clear validBit and dirtyBit since the page is no longer in main memory
-                    pageTable[queue.queueItems[pos].pageID].validBit = 0;
-                    pageTable[queue.queueItems[pos].pageID].dirtyBit = 0;
-                    pageTable[queue.queueItems[pos].pageID].pageNum = pageTable[queue.queueItems[pos].pageID].pageID;
-                    popByPosition(pos);
-
-                    // all statements above will come into this
-                }
-
-                // else there is still available page in 
-                int availableMMPageID = findLowestMMPageID();
-                pushToRear(availableMMPageID, pageNum);
-                // copy disk page into main memory (loading page to main memory)
-                copyPageToMemory(vm[pageNum], mm[availableMMPageID]);
-                // update pageTable is we already loaded page to main memory
-                pageTable[pageNum].validBit = 1;    // already in main memory
-                pageTable[pageNum].pageNum = availableMMPageID;
-
-
-            }
-
-            int pos = posOfPageInQueue(pageNum);
-            if (strcmp(argv[0], "write") == 0) {
-                mm[queue.queueItems[pos].mmPageID][pageIndex] = atoi(argv[2]);      // write content to main memory
-                pageTable[pageNum].dirtyBit = 1;
-            }
-            else {  // read content of a page. either -1 when page fault or the real content
-                printf("%d\n", mm[queue.queueItems[pos].mmPageID][pageIndex]);
-            }
-
-           
-           
-
+        // page might or might not in queue which is on main memory
+        // write command still needs to load page to main and write content
+        int pos = posOfPageInQueue(pageNum);
+        if (strcmp(argv[0], "write") == 0) {
+            mm[queue.queueItems[pos].mmPageID][pageIndex] = atoi(argv[2]);      // write content to main memory
+            pageTable[pageNum].dirtyBit = 1;
         }
-
-
-
-
+        else {  // read content of a page. either -1 when page fault or the real content
+            printf("%d\n", mm[queue.queueItems[pos].mmPageID][pageIndex]);
+        }
     }
 }
 int main(int argc, char* argv[]){
@@ -362,7 +294,6 @@ int main(int argc, char* argv[]){
     int u_argc = 0;             //user entered: number of arguments 
     char* u_argv[MAX_LINE];     //user entered: list of arguments. First arg is command.
     enum ALGORITHM algo = FIFO; // default page replacement argorithm
-    //char pageRepAlgo[MAX_LINE];
 
     // check for command-line argument if LRU, assign LRU for algorithm else use default
     if (argc == 2) {
@@ -393,7 +324,6 @@ int main(int argc, char* argv[]){
         eval(u_argv, u_argc, algo);
         
     }
-
 
     //test
     return 0;
