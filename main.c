@@ -42,7 +42,7 @@ struct Page {
     int pageID;     // pageID refers to virtual page
     int mmPageID;   // main memory's page ID
     //int position;   // position in the data structures
-    int timesAccessed; // times accessed while in queue, reset to zero after page exits queue
+    int timeSinceAccessed; // times accessed while in queue, reset to zero after page exits queue
 };
 
 // a queue data structure of Pages for FIFO algorithm
@@ -85,7 +85,7 @@ void initQueue() {
 void printQueue() {     // creating for testing
     if (queue.size > 0) {
         for (int i = 0; i < queue.size; i++) {
-            printf("Items at %d: pageID [%d]\n", i, queue.queueItems[i].mmPageID);
+            printf("Items at %d: pageID [%d] timeSinceAccessed: [%d] \n", i, queue.queueItems[i].mmPageID,queue.queueItems[i].timeSinceAccessed);
         }
     }
     else {
@@ -138,7 +138,8 @@ int isAPageFault(int pageID) { //checks if incoming page is a fault
     for(int i = 0; i < queue.size; i++){
         
         if (pageID == queue.queueItems[i].pageID){     // if the pageID has been loaded to main (exists in queue)
-            queue.queueItems[i].timesAccessed++;
+            queue.queueItems[i].timeSinceAccessed = 0;
+            
             return 0; //not a hit since value already exists, update accessed value of item 
         }
     }
@@ -149,17 +150,17 @@ int isAPageFault(int pageID) { //checks if incoming page is a fault
 int LRUFindVictimPage(){  //assume queue is full here -> returns index of item in queue to be removed since it needs to be removed by
     //pageRef is string of pages for reference - can replace with actual reference string later, or not 
     //take all of the least accessed values and find out which is the least recently used one. 
-    int minimum = queue.queueItems[0].timesAccessed; //minimum times accessed starts at first value
+    int max = queue.queueItems[0].timeSinceAccessed; //max times accessed starts at first value
     for(int i = 0; i < queue.size; i++){
-        if ( queue.queueItems[i].timesAccessed < minimum ) 
+        if ( queue.queueItems[i].timeSinceAccessed > max ) 
         {
-           minimum = queue.queueItems[i].timesAccessed;
+           max = queue.queueItems[i].timeSinceAccessed;
         }
     }
 
     //find the least recent page that has been accessed minimum amount of times 
     for(int i = 0; i < queue.size; i++){
-        if(queue.queueItems[i].timesAccessed == minimum){ //finds first element 
+        if(queue.queueItems[i].timeSinceAccessed == max){ //finds first element 
             return i; //returns position of element in queue
         }
     }
@@ -176,7 +177,7 @@ void pushToRear(int mmPageID, int pageNum) { //adds new page to queue with a tim
     int index = queue.size;
     queue.queueItems[index].pageID = pageNum;
     queue.queueItems[index].mmPageID = mmPageID;
-    queue.queueItems[index].timesAccessed = 1;
+    queue.queueItems[index].timeSinceAccessed = 0;
     queue.size++;
 
 }
@@ -224,6 +225,11 @@ int posOfPageInQueue(int pageID) {
     return pos;
 }
 
+void updateTimes(){
+    for(int i= 0; i < queue.size; i ++){
+        queue.queueItems[i].timeSinceAccessed++;
+    }
+}
 
 void eval(char **argv, int argc, enum ALGORITHM algo){
     
@@ -256,48 +262,6 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
         int pageNum = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
         int victimPageQueuePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
 
-        //printf("page ID: %d at index %d\n", pageID, pageIndex);
-
-        
-        /*if (isAPageFault(pageNum) == 1) { // check if a Page is in queue yet. If not that means nothing in main memory -> Page fault
-            print("A Page Fault Has Occurred!\n");
-            if (queue.size == MAX_MM_PAGE) 
-            {    // All pages in main are in queue -> need to choose a victim page for eviction
-                    // Below is the job of removing victim page from main memory 
-                    if(algo == FIFO){
-                        victimPageQueuePosition = 0; //since FIFO is always the first element 
-                    }
-                    else{
-                        victimPageQueuePosition = LRUFindVictimPage(); //find by least recent accessed page 
-                    }
-                    
-                    // copy main page to disk page. this is the eviction we would need to do 
-                   
-                    pageTable[pageNum].validBit = 0; // set the pageID in pageTable validBit = 0
-                    pageTable[pageNum].dirtyBit = 0; // set the pageID in pageTable dirtyBit = 0
-                    pageTable[pageNum].pageNum = pageNum; // set the pageID in pageTable pageNum = pageID
-                    
-                    popByPosition(victimPageQueuePosition); // pop by the position; resets page times access to 0
-    
-            }
-            else
-            {
-
-            
-                // copy disk page to main memory0`
-                // find available lowest mmPageID !! 
-
-
-                // doing actual copy
-
-                // set pageTable validBit at the pageNum to 1 since we load the pageID in main memory
-                // push this page to Queue; times accessed should equal 1 here since it got added to the queue 
-                // set the pageNum on the pageTable this mmPageID 
-
-            }
-        
-        }*/
-
         if (algo == FIFO) {
             if (isAPageFault(pageNum) == 1) {
                 printf("A Page Fault Has Occured!\n");
@@ -312,7 +276,7 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                     popByPosition(0);
 
                     // all statements above will come into this
-                    evictVictimPagebyPosition(victimPageQueuePosition);
+                    //evictVictimPagebyPosition(victimPageQueuePosition);
                 }
 
                 // else there is still available page in 
@@ -325,7 +289,8 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                 pageTable[pageNum].pageNum = availableMMPageID;
 
             }
-            // page might be already in queue which is on main
+            // page might or might not in queue which is on main
+            // write command still needs to load page to main and write content
             int pos = posOfPageInQueue(pageNum);
             if (strcmp(argv[0], "write") == 0) {
                 mm[queue.queueItems[pos].mmPageID][pageIndex] = atoi(argv[2]);      // write content to main memory
@@ -340,11 +305,14 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
         
         else {  // here is for LRU Algorithm. Separating two algorithm at the beginning is easier to handle
                 // Optimization can be done later
+            updateTimes(); //increase time for everything in the queue.
             if (isAPageFault(pageNum) == 1) {
                 printf("A Page Fault Has Occured!\n");
                 int pos;
                 if (queue.size == MAX_MM_PAGE) { // All pages in main are in queue -> need to choose a victim page for eviction
+                    //printf("Hit max size.\n");
                     pos = LRUFindVictimPage();
+                    //printf("The page chosen for evition is: %d\n",pos);
                     copyPageToMemory(mm[queue.queueItems[pos].mmPageID], vm[queue.queueItems[pos].pageID]);     // queue's full. copy the victim page back to disk
                     // for LRU. \Least recently used item in queue
                     // victim page is copied back to disk with page number is the same as the number virtual page
@@ -352,7 +320,9 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                     pageTable[queue.queueItems[pos].pageID].validBit = 0;
                     pageTable[queue.queueItems[pos].pageID].dirtyBit = 0;
                     pageTable[queue.queueItems[pos].pageID].pageNum = pageTable[queue.queueItems[pos].pageID].pageID;
-                    popByPosition(0);
+                    popByPosition(pos);
+
+                    // all statements above will come into this
                 }
 
                 // else there is still available page in 
@@ -366,6 +336,16 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
 
 
             }
+
+            int pos = posOfPageInQueue(pageNum);
+            if (strcmp(argv[0], "write") == 0) {
+                mm[queue.queueItems[pos].mmPageID][pageIndex] = atoi(argv[2]);      // write content to main memory
+                pageTable[pageNum].dirtyBit = 1;
+            }
+            else {  // read content of a page. either -1 when page fault or the real content
+                printf("%d\n", mm[queue.queueItems[pos].mmPageID][pageIndex]);
+            }
+
            
            
 
