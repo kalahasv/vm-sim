@@ -42,7 +42,7 @@ struct Page {
     int pageID;     // pageID refers to virtual page
     int mmPageID;   // main memory's page ID
     //int position;   // position in the data structures
-    int timesAccessed; // times accessed while in queue, reset to zero after page exits queue
+    int time; // time since been in queue. reset to 0 upon exiting.
 };
 
 // a queue data structure of Pages for FIFO algorithm
@@ -54,6 +54,12 @@ struct Queue {
 
 // define suitable data structure to handle LRU properties 
 // data is Page
+
+void updateTimes(){
+    for(int i= 0; i < queue.size; i ++){
+        queue.queueItems[i].time++;
+    }
+}
 
 void initPageTable() {
     for(int i = 0; i < MAX_VM_PAGE; i ++){
@@ -138,7 +144,7 @@ int isAPageFault(int pageID) { //checks if incoming page is a fault
     for(int i = 0; i < queue.size; i++){
         
         if (pageID == queue.queueItems[i].pageID){     // if the pageID has been loaded to main (exists in queue)
-            queue.queueItems[i].timesAccessed++;
+            queue.queueItems[i].time = 0;
             return 0; //not a hit since value already exists, update accessed value of item 
         }
     }
@@ -149,17 +155,17 @@ int isAPageFault(int pageID) { //checks if incoming page is a fault
 int LRUFindVictimPage(){  //assume queue is full here -> returns index of item in queue to be removed since it needs to be removed by
     //pageRef is string of pages for reference - can replace with actual reference string later, or not 
     //take all of the least accessed values and find out which is the least recently used one. 
-    int minimum = queue.queueItems[0].timesAccessed; //minimum times accessed starts at first value
+    int max = queue.queueItems[0].time; //minimum times accessed starts at first value
     for(int i = 0; i < queue.size; i++){
-        if ( queue.queueItems[i].timesAccessed < minimum ) 
+        if ( queue.queueItems[i].time > max ) 
         {
-           minimum = queue.queueItems[i].timesAccessed;
+           max = queue.queueItems[i].time;
         }
     }
 
     //find the least recent page that has been accessed minimum amount of times 
     for(int i = 0; i < queue.size; i++){
-        if(queue.queueItems[i].timesAccessed == minimum){ //finds first element 
+        if(queue.queueItems[i].time == max){ //finds first element w that time
             return i; //returns position of element in queue
         }
     }
@@ -176,7 +182,7 @@ void pushToRear(int mmPageID, int pageNum) { //adds new page to queue with a tim
     int index = queue.size;
     queue.queueItems[index].pageID = pageNum;
     queue.queueItems[index].mmPageID = mmPageID;
-    queue.queueItems[index].timesAccessed = 1;
+    queue.queueItems[index].time = 0;
     queue.size++;
 
 }
@@ -255,7 +261,7 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
         int pageIndex = convertVAtoIndex(VA);           // find the pageIndex of this VA. va & 7 (might not need to call another function)
         int pageNum = convertVAtoPageID(pageIndex, VA);  // find pageID of this VA. pageID = (VA - off) / NUM_ADDRESSES
         int victimPageQueuePosition = -1; // default val of -1 for testing sake -> victim page's position in the queue
-
+       
         //printf("page ID: %d at index %d\n", pageID, pageIndex);
 
         
@@ -356,6 +362,7 @@ void eval(char **argv, int argc, enum ALGORITHM algo){
                 }
 
                 // else there is still available page in 
+                updateTimes(); //update times of everything there
                 int availableMMPageID = findLowestMMPageID();
                 pushToRear(availableMMPageID, pageNum);
                 // copy disk page into main memory (loading page to main memory)
